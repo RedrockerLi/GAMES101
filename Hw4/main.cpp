@@ -1,39 +1,80 @@
-#include "Scene.hpp"
-#include "Sphere.hpp"
-#include "Triangle.hpp"
-#include "Light.hpp"
-#include "Renderer.hpp"
+#include <chrono>
+#include <iostream>
+#include <opencv2/opencv.hpp>
 
-// In the main function of the program, we create the scene (create objects and lights)
-// as well as set the options for the render (image width and height, maximum recursion
-// depth, field-of-view, etc.). We then call the render function().
-int main()
+std::vector<cv::Point2f> control_points;
+
+void mouse_handler(int event, int x, int y, int flags, void *userdata) 
 {
-    Scene scene(1280, 960);
+    if (event == cv::EVENT_LBUTTONDOWN && control_points.size() < 4) 
+    {
+        std::cout << "Left button of the mouse is clicked - position (" << x << ", "
+        << y << ")" << '\n';
+        control_points.emplace_back(x, y);
+    }     
+}
 
-    auto sph1 = std::make_unique<Sphere>(Vector3f(-1, 0, -12), 2);
-    sph1->materialType = DIFFUSE_AND_GLOSSY;
-    sph1->diffuseColor = Vector3f(0.6, 0.7, 0.8);
+void naive_bezier(const std::vector<cv::Point2f> &points, cv::Mat &window) 
+{
+    auto &p_0 = points[0];
+    auto &p_1 = points[1];
+    auto &p_2 = points[2];
+    auto &p_3 = points[3];
 
-    auto sph2 = std::make_unique<Sphere>(Vector3f(0.5, -0.5, -8), 1.5);
-    sph2->ior = 1.5;
-    sph2->materialType = REFLECTION_AND_REFRACTION;
+    for (double t = 0.0; t <= 1.0; t += 0.001) 
+    {
+        auto point = std::pow(1 - t, 3) * p_0 + 3 * t * std::pow(1 - t, 2) * p_1 +
+                 3 * std::pow(t, 2) * (1 - t) * p_2 + std::pow(t, 3) * p_3;
 
-    scene.Add(std::move(sph1));
-    scene.Add(std::move(sph2));
+        window.at<cv::Vec3b>(point.y, point.x)[2] = 255;
+    }
+}
 
-    Vector3f verts[4] = {{-5,-3,-6}, {5,-3,-6}, {5,-3,-16}, {-5,-3,-16}};
-    uint32_t vertIndex[6] = {0, 1, 3, 1, 2, 3};
-    Vector2f st[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-    auto mesh = std::make_unique<MeshTriangle>(verts, vertIndex, 2, st);
-    mesh->materialType = DIFFUSE_AND_GLOSSY;
+cv::Point2f recursive_bezier(const std::vector<cv::Point2f> &control_points, float t) 
+{
+    // TODO: Implement de Casteljau's algorithm
+    return cv::Point2f();
 
-    scene.Add(std::move(mesh));
-    scene.Add(std::make_unique<Light>(Vector3f(-20, 70, 20), 0.5));
-    scene.Add(std::make_unique<Light>(Vector3f(30, 50, -12), 0.5));    
+}
 
-    Renderer r;
-    r.Render(scene);
+void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window) 
+{
+    // TODO: Iterate through all t = 0 to t = 1 with small steps, and call de Casteljau's 
+    // recursive Bezier algorithm.
 
-    return 0;
+}
+
+int main() 
+{
+    cv::Mat window = cv::Mat(700, 700, CV_8UC3, cv::Scalar(0));
+    cv::cvtColor(window, window, cv::COLOR_BGR2RGB);
+    cv::namedWindow("Bezier Curve", cv::WINDOW_AUTOSIZE);
+
+    cv::setMouseCallback("Bezier Curve", mouse_handler, nullptr);
+
+    int key = -1;
+    while (key != 27) 
+    {
+        for (auto &point : control_points) 
+        {
+            cv::circle(window, point, 3, {255, 255, 255}, 3);
+        }
+
+        if (control_points.size() == 4) 
+        {
+            naive_bezier(control_points, window);
+            //   bezier(control_points, window);
+
+            cv::imshow("Bezier Curve", window);
+            cv::imwrite("my_bezier_curve.png", window);
+            key = cv::waitKey(0);
+
+            return 0;
+        }
+
+        cv::imshow("Bezier Curve", window);
+        key = cv::waitKey(20);
+    }
+
+return 0;
 }
