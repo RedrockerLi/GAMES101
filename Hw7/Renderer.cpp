@@ -26,7 +26,7 @@ void Renderer::Render(const Scene& scene)
     int progressed = 0;
 
     // change the spp value to change sample ammount
-    int spp = 1024;
+    int spp = 4096;
     std::cout << "SPP: " << spp << "\n";
     #pragma omp parallel for schedule(dynamic) num_threads(16)
     for (uint32_t j = 0; j < scene.height; ++j) {
