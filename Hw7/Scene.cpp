@@ -62,6 +62,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
 {
     // TO DO Implement Path Tracing Algorithm here
     Vector3f l_dir = Vector3f(0.f);
+    Vector3f l_indir = Vector3f(0.f);
 
     Intersection first_intersection = intersect(ray);
     if (!first_intersection.happened) {
@@ -84,8 +85,8 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     Vector3f dir1 = (point2 - point1).normalized();
     float dist1 = (point2 - point1).norm();
 
-    Ray ws_ray(point1+dir1*EPSILON, dir1);
-    Intersection light_break = intersect(ws_ray);
+    Ray point1_to_light(point1+dir1*EPSILON, dir1);
+    Intersection light_break = intersect(point1_to_light);
     if (light_break.distance - dist1 > -EPSILON){
         Vector3f emit = light_intersection.emit;
         l_dir = emit * first_intersection.m->eval(dir1, -ray.direction, N1) 
@@ -94,5 +95,19 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
                 / (light_pdf * dist1 * dist1);
     }
 
-    return l_dir;
+    if (get_random_float() > RussianRoulette) {
+        return l_dir;
+    }
+
+    Vector3f dir2 = first_intersection.m->sample(ray.direction, N1);
+    Ray point1_to_point2(point1 + dir2 * EPSILON, dir2);
+    Intersection second_intersection = intersect(point1_to_point2);
+    if(second_intersection.happened && !second_intersection.m->hasEmission()){
+        l_indir = castRay(point1_to_point2, depth + 1) 
+                * first_intersection.m->eval(dir2, -ray.direction, N1)
+                * dotProduct(dir2, N1)
+                / (first_intersection.m->pdf(dir2, -ray.direction, N1) * RussianRoulette);
+    }
+
+    return l_dir + l_indir;
 }
