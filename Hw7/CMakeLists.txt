@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
+
+# 如果用户没指定，则默认用 Release
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# 给 Release 配置一些常用优化标志（可选）
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+
 project(RayTracing)
 
 # 启用 C++17 标准并关闭编译器扩展

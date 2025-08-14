@@ -60,24 +60,29 @@ bool Scene::trace(
 // Implementation of Path Tracing
 Vector3f Scene::castRay(const Ray &ray, int depth) const
 {
-    // TO DO Implement Path Tracing Algorithm here
-    float EPLISON = 0.0001;
+    // // TO DO Implement Path Tracing Algorithm here
+    float MY_EPSILON = 0.0001;
 
+    Vector3f lightColor = Vector3f(0.f);
     Vector3f l_dir = Vector3f(0.f);
     Vector3f l_indir = Vector3f(0.f);
 
     Intersection first_intersection = intersect(ray);
     if (!first_intersection.happened) {
-        return Vector3f(0.f);
+        return this->backgroundColor;
     }
 
     if (first_intersection.m->hasEmission()) {
-        return first_intersection.m->getEmission();
+        lightColor = first_intersection.m->getEmission();
     }
 
     Intersection light_intersection;
     float light_pdf = 0;
-    sampleLight(light_intersection, light_pdf);
+    // int sample_count = 0;
+    // while (light_pdf < EPSILON || sample_count < 10) {
+        sampleLight(light_intersection, light_pdf);
+        // sample_count += 1;
+    // }
     
     Vector3f point1 = first_intersection.coords;
     Vector3f N1 = first_intersection.normal.normalized();
@@ -87,29 +92,38 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     Vector3f dir1 = (point2 - point1).normalized();
     float dist1 = (point2 - point1).norm();
 
-    Ray point1_to_light(point1+dir1*EPLISON*0.01, dir1);
+    Ray point1_to_light(point1 + dir1*MY_EPSILON*0.01, dir1);
     Intersection light_break = intersect(point1_to_light);
-    if (light_break.distance - dist1 > -EPLISON){
+    if (light_break.distance - dist1 > -MY_EPSILON){
         Vector3f emit = light_intersection.emit;
-        l_dir = emit * first_intersection.m->eval(ray.direction, dir1, N1) 
-                * dotProduct( dir1, N1)
-                * dotProduct(-dir1, N2) 
-                / (light_pdf * dist1 * dist1);
+        // if(sample_count < 10)
+            l_dir = emit * first_intersection.m->eval(ray.direction, dir1, N1) 
+                    * dotProduct( dir1, N1)
+                    * dotProduct(-dir1, N2) 
+                    / (light_pdf * dist1 * dist1);
     }
 
     if (get_random_float() > RussianRoulette) {
-        return l_dir;
+        return lightColor + l_dir;
     }
 
     Vector3f dir2 = first_intersection.m->sample(ray.direction, N1).normalized();
-    Ray point1_to_point2(point1+dir2*EPLISON*0.01, dir2);
+    Ray point1_to_point2(point1+dir2*MY_EPSILON*0.01, dir2);
     Intersection second_intersection = intersect(point1_to_point2);
     if(second_intersection.happened && !second_intersection.m->hasEmission()){
-        l_indir = castRay(point1_to_point2, depth + 1) 
-                * first_intersection.m->eval(ray.direction,dir2, N1)
-                * dotProduct(dir2, N1)
-                / (first_intersection.m->pdf(ray.direction,dir2, N1) * RussianRoulette);
+        float light2_pdf = 0;
+        // sample_count = 0;
+        // while(light2_pdf < EPSILON || sample_count < 10) {
+            light2_pdf = first_intersection.m->pdf(ray.direction, dir2, N1);
+            // sample_count += 1;
+        // }
+
+        // if(sample_count < 10)
+            l_indir = castRay(point1_to_point2, depth + 1) 
+                    * first_intersection.m->eval(ray.direction,dir2, N1)
+                    * dotProduct(dir2, N1)
+                    / (light2_pdf * RussianRoulette);
     }
 
-    return l_dir + l_indir;
+    return lightColor + l_dir + l_indir;
 }

@@ -6,7 +6,7 @@
 #include "Scene.hpp"
 #include "Renderer.hpp"
 #include <omp.h>
-
+#include <iostream>
 
 inline float deg2rad(const float& deg) { return deg * M_PI / 180.0; }
 
@@ -38,8 +38,15 @@ void Renderer::Render(const Scene& scene)
 
             Vector3f dir = normalize(Vector3f(-x, y, 1));
             Vector3f color_sum(0.0f);
+            Vector3f color(0.0f);
             for (int k = 0; k < spp; k++){
-                color_sum += scene.castRay(Ray(eye_pos, dir), 0);  
+                color = scene.castRay(Ray(eye_pos, dir), 0); 
+                if(std::isnan(color.x) || std::isnan(color.y) || std::isnan(color.z)){
+                    k -= 1;
+                    std::cout << "color NaN at x: " << i << " y: " << j << std::endl;
+                }else{
+                    color_sum += color;
+                }
             }
             framebuffer[j * scene.width + i] = color_sum / spp;
         }
