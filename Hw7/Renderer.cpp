@@ -26,7 +26,7 @@ void Renderer::Render(const Scene& scene)
     int progressed = 0;
 
     // change the spp value to change sample ammount
-    int spp = 4096;
+    int spp = 1024;
     std::cout << "SPP: " << spp << "\n";
     #pragma omp parallel for schedule(dynamic) num_threads(16)
     for (uint32_t j = 0; j < scene.height; ++j) {
@@ -43,7 +43,7 @@ void Renderer::Render(const Scene& scene)
                 color = scene.castRay(Ray(eye_pos, dir), 0); 
                 if(std::isnan(color.x) || std::isnan(color.y) || std::isnan(color.z)){
                     k -= 1;
-                    std::cout << "color NaN at x: " << i << " y: " << j << std::endl;
+                    // std::cout << "color NaN at x: " << i << " y: " << j << std::endl;
                 }else{
                     color_sum += color;
                 }
